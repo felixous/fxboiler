@@ -3,6 +3,7 @@ const app = express()
 const port = 5000
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
+const { auth } = require('./middleware/auth')
 const { User } = require('./models/User')
 
 const config = require('./config/key');
@@ -30,7 +31,7 @@ app.get('/', (req, res) => {
 })
 
 
-app.post('/register', (req, res) => {
+app.post('/api/users/register', (req, res) => {
 
 	const user = new User(req.body)
 
@@ -44,7 +45,7 @@ app.post('/register', (req, res) => {
 })
 
 
-app.post('/login', (req, res) => {
+app.post('/api/users/login', (req, res) => {
 
 	// 1. 요청된 이메일을 데이터베이스에서 있는지 찾음
 	User.findOne({ email: req.body.email }, (err, user) => {
@@ -73,11 +74,36 @@ app.post('/login', (req, res) => {
 		})
 	})
 
-	
-
-	
+})
 
 
+app.get('/api/users/auth', auth, (req, res) => {
+
+	// 여기까지 미들웨어를 통과해 왔다는 얘기는 Authentication이 true라는 말
+	res.status(200).json({
+		_id: req.user._id,
+		isAdmin: req.user.role === 0 ? false : true,
+		isAuth: true,
+		email: req.user.email,
+		name: req.user.name,
+		lastname: req.user.lastname,
+		role: req.user.role,
+		image: req.user.image
+	})
+
+})
+
+
+app.get('/api/users/logout', auth, (req, res) => {
+
+	User.findOneAndUpdate({ _id: req.user._id }, {
+		token: ""
+	}, (err, user) => {
+		if (err) return res.json({ success: false, err })
+		return res.status(200).send({
+			success: true
+		})
+	})
 
 })
 
